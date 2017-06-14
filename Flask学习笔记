@@ -1,0 +1,155 @@
+1.Application and Request Context(上下文)
+在Flask 中，一般一个view function(视图函数)会处理一个请求
+Flask 中提供request context.保证全局只有一个线程的request,而不会同时出现两个request.
+
+Application and Request Context 一共有四种
+
+current_app (Application context)
+g (Application context)
+request (Request context)
+session (Request context)
+
+
+2.Request Dispatching(请求发送)
+当服务器接受一个请求，Flask通过建立一个URL mapping ,为请求找到相应的视图函数。
+Flast 利用 app.route 建立这个Map.
+
+>>> from hello import app
+>>> app.url_map
+Map([<Rule '/' (HEAD, OPTIONS, GET) -> index>,
+     <Rule '/static/<filename>' (HEAD, OPTIONS, GET) -> static>,
+     <Rule '/user/<name>' (HEAD, OPTIONS, GET) -> user>])
+
+其中 /static/<filename> route 是Flask中特有的。
+
+
+3.Request Hooks(请求挂钩)
+在接受请求或者处理完请求之后，都要执行一段代码。比如请求发送之前，我们需要连接一下数据库。所以
+我们可以写一个连接数据库的通用函数。Flask 中Request hook function 提供了这个功能
+有四种hook 函数
+
+before_first_request: 当接受第一个请求之前要执行的代码。
+before_request :接受每一个请求之前要执行的代码。
+after_request:处理完每一个请求之后要执行的代码，只有请求成功处理之后。
+teardown_request:处理完每一个请求之后要执行的代码，请求处理失败之后也可以执行的。
+
+在 request hook function 和view function 之间的数据共享是通过全局的g context来完成的。
+例如登录之前，通过before_request请求连接数据库的获取用户的信息 g.username。然后在
+view function 中就可以调用g.username
+
+4.Responses(回应)
+每个view function 都会返回一个value。可以返回html 页面。
+但是http 协议要求我们还需要返回一个状态，比如200 就是成功执行请求，400 就是执行请求发生错误。
+for example
+   app.route('/')
+   def index():
+        return '<h1>error request<h1>,400'
+view function 可以返回两个，也可以返回三个（value，status，headers）
+Flask 也提供了专门一个函数make_response()
+@app.route('/')
+def index2():
+        response=make_response('<h1>This document carries a cookie!</h1>')
+        response.set_cookie('answer','42')
+        return response
+除此之外，还有两种response方式：
+
+redirect(重定向) 实际上一个返回三个的response
+from flask import redirect
+@app.route('/')
+def index():
+  return redirect('http://www.example.com')
+
+abort(用于抛出错误)
+from flask import abort
+@app.route('/user/<id>')
+def get_user(id):
+    user = load_user(id)
+    if not user:
+        abort(404)
+    return '<h1>Hello, %s</h1>' % user.name
+
+
+5.Extensions
+Command-LineOptions with Flask-Script
+Flask 具有可扩展性，可以下载很多插件。
+比如Flask-script 这个插件，就是可以让Flask使用命令行在后台。
+举个列子：
+首先下载Flask_script: $ pip install flask-script
+要使用Command-LineOptions这个插件，那么hello.py就要做相应的改变。
+然后我们在hello.py中可以这么写：
+
+#!/bin/python
+
+from flask import Flask,make_response
+from flask.ext.script import Manager
+app = Flask(__name__)
+
+manager = Manager(app)
+
+#...
+
+if __name__ =='__main__':
+    manager.run()
+
+这个时候在终端，我们就可以用命令。
+$ python hello.py
+usage: hello.py [-?] {shell,runserver} ...
+
+positional arguments:
+  {shell,runserver}
+    shell            Runs a Python shell inside Flask application context.
+    runserver        Runs the Flask development server i.e. app.run()
+其中shell 命令是启动application 中的context的session 前面提到过。
+runserver命令是启动Web server的。
+在runserver命令中我们可以查看很多命令，$ python hello.py runserver --help
+其中有-h,-t,--host,-p,--post 等等
+--host可以设置服务器监听的网络地址。--host 0.0.0.0 所有的地址都可以访问服务器。
+
+6.Jinja2 模板引擎。
+首先我们理解Jinja2 模板引擎是个什么东西。其实Jinja 模板引擎就是在html的基础上，在需要交互
+数据的地方做一些标注，能实现前后端数据交互。这样就省了很多前端传到后端的代码，实现前后端的MVC
+，方便开发。Flask 使用Jinja2模板引擎。
+
+Jinja2 模板引擎之 变量
+打印变量用{{ Varibles }}
+例如：{{ list[0] }} 打印list数组里的第一个元素。
+变量的过滤器，我们可以在变量后面加一个过滤器，对变量进行操作.过滤器和变量用|分隔。
+例如：{{ name|capitalize}}  把name这个变量的首字母大写。
+下面介绍几个过滤器：
+Filter name               Description
+safe                      Renders the value without applying escaping
+capitalize                Converts the first character of the value to uppercase and the rest to lowercase Converts the value to lowercase characters
+lower                     ase Converts the value to lowercase characters
+upper                     Converts the value to uppercase characters
+title                     Capitalizes each word in the value
+trim                      Removes leading and trailing whitespace from the value
+striptags                 Removes any HTML tags from the value before rendering
+
+其中safe 过滤器的作用是关闭html转义。还有escapes过滤器是html转义。比如一个字符串 s='<h1>hello world</h1>'
+{{s|escapes}} 则是将这个字符串转移成html的内容，从而显示<h1>标签的hello world。
+如果{{s|safe}} 那就是打印<h1>hello world<h1>
+
+
+执行语句 用{% %}
+if条件
+{% if user %}
+    Hello,{{ user }}!
+{%  else %}
+    Hello,Stranger!
+{% endif %}
+for循环
+<ul>
+  {% for comment int comments %}
+      <li>{{comment}}</li>
+  {% endfor %}
+</ul>
+宏定义 macro
+{% macro render_comment(comment)%}
+    <li>{{comment}}</li>
+{% endmacro %}
+
+<ul>
+        {% for comment in comments %}
+            {{ render_comment(comment) }}
+        {% endfor %}
+</ul>
