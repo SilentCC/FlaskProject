@@ -153,3 +153,88 @@ for循环
             {{ render_comment(comment) }}
         {% endfor %}
 </ul>
+宏定义 macro 还可以导入文件，例如将上面的
+{% macro render_comment(comment)%}
+    <li>{{comment}}</li>
+{% endmacro %}
+放到macros.html里面，再通过导入的方式使用宏定义
+
+{% import 'macros.html' as macros %}
+<ul>
+{% for comment in comments %}
+            {{ macros.render_comment(comment) }}
+{% endfor %}
+</ul>
+
+如果有多处需要用到重复的代码块，可以统一到一个文件里，通过include
+    {% include 'common.html' %}
+
+flask还有一个很重要的用法就是继承性。我们可以写一个模板网页base.html
+<html>
+<head>
+{% block head %}
+<title>{% block title %}{% endblock %} - My Application</title> {% endblock %}
+    </head>
+    <body>
+        {% block body %}
+        {% endblock %}
+</body>
+</html>
+我们再写一个base2.html来继承base.html
+ {% extends "base.html" %}
+    {% block title %}Index{% endblock %}
+    {% block head %}
+{{ super() }}
+<style>
+</style>
+{% endblock %}
+{% block body %} <h1>Hello, World!</h1> {% endblock %}
+
+这里extends就是继承的标志，
+block标签：被block标记的代码块，是可以被改变的
+在子页面中，可以新建一个block,也可以对父页面中的block进行重写
+super()则是继承父页面中的block中的已有的代码
+
+7.Bootstrap
+Flask中也可以使用boostrap,Flask提供了Flask-Bootstrap 扩展包，用来将
+使用bootstrap
+$ pip install flask-bootstrap  安装flask-bootstrap
+from flask.ext.bootstrap import Bootstrap
+ # ...
+bootstrap = Bootstrap(app)  初始化flask-bootstrap。
+
+8.链接
+网页中有很多需要通过url跳转到其他页面的地方，如果是一个固定的URL，就会很简单，但是如果是一个动态的URL
+比如带参数的URL，就会比较麻烦。Flask提供了url_for()函数，来统一管理这些URL
+url_for最简单的用法，以hello.py中的视图函数名为参数，则会返回这个视图函数的URL
+例如：
+视图函数：
+@app.route('/user/<name>')
+def user(name):
+    return render_template('user.html',name=name)
+
+url_for('user', name='john', _external=True)则会返回
+http://localhost:5000/user/john.
+
+url_for也可以不用视图函数里的参数，用自己定义的例如：
+url_for('index', page=2) 会返回 /?page=2.
+
+url_for也可以引用很多固定文件，比如css文件，javascript文件，图片等等
+这些固定文件，一般都放在static文件夹下
+ url_for('static', filename='css/styles.css', _external=True)
+ 会返回 http://localhost:5000/static/css/styles.css.
+
+9.日期和时间
+Flask提供了flask-moment,依赖于javascript中的jquery.js和moment.js
+提供了对时间和日期处理的各种函数
+$ pip install flask-moment  安装flask-moment
+
+初始化moment
+from flask.ext.moment import Moment
+moment = Moment(app)
+
+在网页中导入moment.js
+
+{% block scripts %}
+{{ moment.include_moment() }}
+{% endblock %}

@@ -3,19 +3,23 @@
 from flask import Flask,make_response,render_template
 from flask.ext.script import Manager
 from flask.ext.bootstrap import Bootstrap
+from flask.ext.moment import Moment
+
 
 app = Flask(__name__)
 
 manager = Manager(app)
 bootstrap = Bootstrap(app)
+moment = Moment(app)
 
 @app.route('/hello')
 def hello():
     return '<h1>Hello World!</h1>'
 
+from datetime import datetime
 @app.route('/index')
 def index():
-    return render_template('index.html')
+    return render_template('index.html',current_time=datetime.utcnow())
 
 """
 @app.route('/user/<name>')
