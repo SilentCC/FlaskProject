@@ -238,3 +238,61 @@ moment = Moment(app)
 {% block scripts %}
 {{ moment.include_moment() }}
 {% endblock %}
+
+10.表格
+在Flask中使用表格,Flask提供了flask-wtf
+$ pip install flask-wtf  安装flask-wtf
+flask-wtf 保护网站的避免受到CSRF攻击，所谓CSRF攻击，就是用户在浏览一个网站的时候，获得该网站的
+安全验证，此时在这个网页中点击了另一个恶意网站，恶意网站就可以获得用户的信息，操控用户做一些用户不想做的事情
+在hello.py中加入密钥，防止CSRG
+pp = Flask(__name__)
+app.config['SECRET_KEY'] = 'hard to guess string'
+
+SECRET_KEY是密钥，配置密钥的字符串自己可以设置一个，相当于密码
+
+使用表格的时候，flask是将表格在hello.py作为一个类，然后前端再调取这个form Classes
+from flask.ext.wtf import Form
+from wtforms import StringField, SubmitField from wtforms.validators import Required
+class NameForm(Form):
+name = StringField('What is your name?', validators=[Required()])
+submit = SubmitField('Submit')
+
+前端界面：
+<form method="POST">
+{{ form.name.label }} {{ form.name() }}
+{{ form.submit() }}
+</form>
+
+用flask-wtf和flask-bootstrap获得一个表格
+{% extends "base.html" %}
+{% import "bootstrap/wtf.html" as wtf %}
+{% block title %}Flasky{% endblock %}
+{% block page_content %}
+<div class="page-header">
+<h1>Hello, {% if name %}{{ name }}{% else %}Stranger{% endif %}!</h1>
+</div>
+{{ wtf.quick_form(form) }}
+{% endblock %}
+
+bootstrap/wtf.html 定义了函数，提供用Bootstrap的Flask-WTF
+
+11.session
+用法和jsp的session类似
+from flask import session
+
+12.flash
+如果要在网页中弹出提示框，Flask提供了flash
+from flask import flash
+
+flash('error')
+
+相应的在前端界面：
+{{ get_flashed_messages() }}显示flash里面的内容
+如果有很多条flash需要显示
+就可以用for循环
+{% for message in get_flashed_messages() %}
+{{ get_flashed_messages() }}
+{% endfor %}
+
+
+13.数据库
